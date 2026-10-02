@@ -318,3 +318,23 @@ classDiagram
     style ProductoBancario fill:#fdd,stroke:#d00,stroke-width:3px
     style TransaccionService fill:#fdd,stroke:#d00,stroke-width:3px
 ```
+
+## Bloque 2 — Refactorización
+
+Corregir el sistema completo, un principio a la vez, sin cambiar su comportamiento.
+
+Trabajen en el orden de los puntos de control. Al terminar cada uno: (1) ejecuten el programa y comparen la salida con `salida_original.txt`, (2) respondan la pregunta de control en su README y (3) hagan el commit.
+
+> **Tip: compara la salida automáticamente.** En Linux o macOS: `diff salida_original.txt salida_nueva.txt`. En Windows (PowerShell): `Compare-Object (gc salida_original.txt) (gc salida_nueva.txt)`. Solo deberían cambiar la fecha y la hora de la auditoría. A esta técnica se le llama **prueba de caracterización**: antes de refactorizar código sin pruebas, se "congela" lo que hace hoy para detectar cualquier cambio accidental.
+
+### Punto de control S
+
+Separen las responsabilidades que hoy están mezcladas en `TransaccionService.transferir`.
+
+**Pregunta de control:** Después del cambio, describan en una frase qué hace `TransaccionService`. ¿Aparece la palabra "y"? Si el área legal pide cambiar el formato del comprobante, ¿qué archivo tocan?
+
+**Respuesta:**
+
+- **¿Qué hace `TransaccionService`?** Orquesta la transferencia de una cuenta origen a una cuenta destino.
+- **¿Aparece la palabra "y"?** No. La clase ya no valida, calcula, guarda, imprime y audita por su cuenta: solo coordina el orden de los pasos y delega cada uno en una clase con una única responsabilidad (`ValidadorTransaccion`, `CalculadoraComision`, `OracleRepositorio`, `ImpresoraComprobante`, `SmsGateway` y `Auditoria`).
+- **Si el área legal pide cambiar el formato del comprobante, ¿qué archivo tocan?** Solo `ImpresoraComprobante.java`. `TransaccionService` y el código que mueve el dinero no se modifican.
