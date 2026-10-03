@@ -1,4 +1,4 @@
-public class TarjetaCredito implements ProductoBancario {
+public class TarjetaCredito implements ProductoCredito, GeneradorExtracto {
     private double deuda;
     private final double cupo;
 
@@ -6,21 +6,22 @@ public class TarjetaCredito implements ProductoBancario {
         this.cupo = cupo;
     }
 
-    public void depositar(double monto) { } // no aplica
-
     public void retirar(double monto) { // avance en efectivo
         if (deuda + monto > cupo) throw new IllegalStateException("Cupo insuficiente");
         deuda += monto;
     }
 
+    @Override
     public double calcularIntereses() {
         return deuda * 0.028;
     }
 
+    @Override
     public void pagarCuota(double monto) {
         deuda -= monto;
     }
 
+    @Override
     public String generarExtracto() {
         return "Tarjeta - deuda: $" + deuda;
     }

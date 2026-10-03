@@ -238,3 +238,15 @@ Corrijan la jerarquía de cuentas para que el cobro de cuota de manejo nunca pue
 - **¿Al compilar o al ejecutar?** Al compilar. `CobroCuotaManejo.cobrarMensual()` ahora recibe una `List<CuentaTransaccional>`, y `CDT` hereda de `Cuenta` pero no de `CuentaTransaccional`. Si alguien intenta incluir un CDT en el cobro, el compilador rechaza el código con un error de tipos incompatibles y el programa ni siquiera llega a ejecutarse.
 - **¿Por qué es mejor?** Porque el error aparece mientras se desarrolla, antes de que el código llegue a producción. Un error en tiempo de ejecución, en cambio, solo se manifiesta cuando se da el caso concreto (por ejemplo, un CDT en la posición 500 000 del cobro nocturno): puede pasar desapercibido en las pruebas y terminar afectando a los clientes con cobros incompletos o fallas en tiempo real.
 - **¿Por qué un `try`/`catch` que ignore los CDT no resuelve el problema?** Porque solo oculta el síntoma. El diseño seguiría diciendo que un CDT es una cuenta que permite retiros, cuando en realidad no lo es. Cada clase que use cuentas tendría que recordar esa excepción y protegerse por su cuenta, y bastaría con que una sola lo olvidara para que el error volviera. Corregir la jerarquía, en cambio, deja explícito en los tipos qué cuentas permiten retiros y cuáles no, y el compilador se encarga de hacerlo cumplir.
+
+### Punto de control I
+
+Corrijan `ProductoBancario` para que ningún producto tenga que implementar métodos que no le aplican.
+
+**Pregunta de control:** ¿Pudieron lograr que un mismo generador de extractos funcione para cuentas, tarjetas y créditos a la vez? ¿Qué interfaz necesitó para eso, y por qué no necesitó conocer los demás métodos de cada producto?
+
+**Respuesta:**
+
+- **¿Funciona para cuentas, tarjetas y créditos a la vez?** Sí. Un mismo recorrido sobre una `List<GeneradorExtracto>` genera el extracto de cualquier cuenta (incluido el CDT, que la hereda de `Cuenta`), de la tarjeta de crédito y del crédito de vivienda.
+- **¿Qué interfaz necesitó?** La interfaz `GeneradorExtracto`, con un único método: `generarExtracto()`. La implementan `Cuenta`, `TarjetaCredito` y `CreditoVivienda`, cada una con su propio formato.
+- **¿Por qué no necesitó conocer los demás métodos?** Porque es una interfaz segregada: contiene solo lo que todos los productos tienen en común, que es poder generar su extracto. Quien recorre los extractos depende únicamente de ese método, sin saber si el producto maneja saldo, deuda o intereses. Las operaciones propias de cada producto quedaron en otros tipos (`ProductoCredito` para `calcularIntereses()` y `pagarCuota()`, y `Cuenta`/`CuentaTransaccional` para `depositar()` y `retirar()`), así que ningún producto tiene que implementar métodos que no le aplican.

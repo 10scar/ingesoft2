@@ -13,8 +13,8 @@ public class Main {
 
         new CobroCuotaManejo().cobrarMensual(List.of(ana, luis));
 
-        List<ProductoBancario> productos =
+        List<GeneradorExtracto> productos =
                 List.of(new TarjetaCredito(3_000_000), new CreditoVivienda(120_000_000));
-        for (ProductoBancario p : productos) System.out.println(p.generarExtracto());
+        for (GeneradorExtracto producto : productos) System.out.println(producto.generarExtracto());
     }
 }
