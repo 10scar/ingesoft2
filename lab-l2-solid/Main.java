@@ -7,7 +7,7 @@ public class Main {
         CuentaTransaccional luis = new CuentaAhorros("001-2", "Luis", 500_000);
         Cuenta cdtAna = new CDT("CDT-9", "Ana", 10_000_000, LocalDate.now().plusMonths(6));
 
-        TransaccionService servicio = new TransaccionService();
+        TransaccionService servicio = new TransaccionService(new OracleRepositorio(), new SmsGateway());
         TipoTransaccion tipo = new OtroBanco();
         servicio.transferir(ana, luis, 150_000, tipo);
 

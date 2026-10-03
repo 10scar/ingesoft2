@@ -250,3 +250,70 @@ Corrijan `ProductoBancario` para que ningún producto tenga que implementar mét
 - **¿Funciona para cuentas, tarjetas y créditos a la vez?** Sí. Un mismo recorrido sobre una `List<GeneradorExtracto>` genera el extracto de cualquier cuenta (incluido el CDT, que la hereda de `Cuenta`), de la tarjeta de crédito y del crédito de vivienda.
 - **¿Qué interfaz necesitó?** La interfaz `GeneradorExtracto`, con un único método: `generarExtracto()`. La implementan `Cuenta`, `TarjetaCredito` y `CreditoVivienda`, cada una con su propio formato.
 - **¿Por qué no necesitó conocer los demás métodos?** Porque es una interfaz segregada: contiene solo lo que todos los productos tienen en común, que es poder generar su extracto. Quien recorre los extractos depende únicamente de ese método, sin saber si el producto maneja saldo, deuda o intereses. Las operaciones propias de cada producto quedaron en otros tipos (`ProductoCredito` para `calcularIntereses()` y `pagarCuota()`, y `Cuenta`/`CuentaTransaccional` para `depositar()` y `retirar()`), así que ningún producto tiene que implementar métodos que no le aplican.
+
+### Punto de control D
+
+Hagan que `TransaccionService` deje de crear sus dependencias con `new` y que dependa de abstracciones. Todo el "armado" del sistema debe quedar en un solo lugar (el programa principal).
+
+**Pregunta de control:** ¿Cuántas clases concretas conoce ahora `TransaccionService`? ¿Quién decide si se usa Oracle o si se notifica por SMS? Vuelvan al experimento 2 del bloque 1: ¿ya es posible esa prueba?
+
+**Respuesta:**
+
+- **¿Cuántas clases concretas conoce ahora `TransaccionService`?** Cuatro: `ValidadorTransaccion`, `CalculadoraComision`, `ImpresoraComprobante` y `Auditoria`. Ya no conoce las dos de infraestructura, `OracleRepositorio` y `SmsGateway`, que eran las que impedían probar la clase y cambiar de proveedor. Se invirtieron las dependencias volátiles, es decir, las que pueden tener varias implementaciones (la base de datos y el canal de notificación), mediante las interfaces `RepositorioTransacciones` y `Notificador`. Las otras cuatro son lógica interna estable con una sola implementación prevista, y crearles interfaces agregaría complejidad sin beneficio.
+- **¿Quién decide si se usa Oracle o si se notifica por SMS?** `Main`, al construir el `TransaccionService`: `new TransaccionService(new OracleRepositorio(), new SmsGateway())`.
+- **¿Ya es posible la prueba del experimento 2?** Sí. Como el repositorio y el notificador llegan por el constructor, la prueba puede pasarle a `TransaccionService` dobles de prueba que no se conectan a Oracle ni envían SMS:
+
+```java
+import java.util.ArrayList;
+import java.util.List;
+
+public class PruebaComisionOtroBanco {
+    static class RepositorioFalso implements RepositorioTransacciones {
+        final List<Double> comisiones = new ArrayList<>();
+
+        @Override
+        public void guardarTransaccion(String origen, String destino, double monto, double comision) {
+            comisiones.add(comision);
+        }
+    }
+
+    static class NotificadorFalso implements Notificador {
+        int enviados = 0;
+
+        @Override
+        public void enviar(String destinatario, String mensaje) {
+            enviados++;
+        }
+    }
+
+    public static void main(String[] args) {
+        RepositorioFalso repositorio = new RepositorioFalso();
+        NotificadorFalso notificador = new NotificadorFalso();
+        CuentaTransaccional origen = new CuentaAhorros("T-1", "Prueba", 1_000_000);
+        Cuenta destino = new CuentaAhorros("T-2", "Prueba", 0);
+
+        new TransaccionService(repositorio, notificador).transferir(origen, destino, 100_000, new OtroBanco());
+
+        System.out.println(repositorio.comisiones.equals(List.of(7_500.0)) ? "PASA: comisión guardada = 7500" : "FALLA: " + repositorio.comisiones);
+        System.out.println(origen.getSaldo() == 892_500 ? "PASA: saldo origen = 892500" : "FALLA: " + origen.getSaldo());
+        System.out.println("SMS reales enviados: 0 (notificador falso recibió " + notificador.enviados + ")");
+    }
+}
+```
+
+Resultado:
+
+```text
+===== BANCO ANDINO - COMPROBANTE =====
+Origen: T-1
+Destino: T-2
+Monto: $100000.0
+Comisión: $7500.0
+======================================
+[AUDITORIA] 2026-10-02T22:24:32.701676169 OTRO_BANCO T-1 -> T-2 $100000.0
+PASA: comisión guardada = 7500
+PASA: saldo origen = 892500
+SMS reales enviados: 0 (notificador falso recibió 1)
+```
+
+A diferencia del intento del bloque 1, ya no aparece ninguna línea `[ORACLE]` ni `[SMS]`: la prueba verifica la comisión de $7.500 sin conectarse a la base de datos de producción ni enviarle un mensaje al cliente.
