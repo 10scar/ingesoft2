@@ -6,7 +6,7 @@ public class TransaccionService {
     private final ImpresoraComprobante comprobante = new ImpresoraComprobante();
     private final Auditoria auditoria = new Auditoria();
     
-    public void transferir(Cuenta origen, Cuenta destino, double monto, TipoTransaccion tipo) {
+    public void transferir(CuentaTransaccional origen, Cuenta destino, double monto, TipoTransaccion tipo) {
         // 1. Validación
         validador.validar(monto);
 

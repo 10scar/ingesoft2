@@ -1,4 +1,4 @@
-public class Cuenta {
+public abstract class Cuenta {
     protected final String numero;
     protected final String titular;
     protected double saldo;
@@ -26,8 +26,4 @@ public class Cuenta {
         saldo += monto;
     }
 
-    public void retirar(double monto) {
-        if (monto > saldo) throw new IllegalStateException("Saldo insuficiente");
-        saldo -= monto;
-    }
 }

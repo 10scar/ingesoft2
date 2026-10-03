@@ -226,3 +226,15 @@ Hoy, agregar un tipo de transferencia obliga a editar el `switch`. Cámbienlo pa
 **Pregunta de control:** Si mañana llega un tipo de transferencia nuevo, ¿qué archivos existentes tendrían que modificar? Enumérenlos. Lo ideal es que solo aparezca el punto donde se arma el sistema (el programa principal).
 
 **Respuesta:** De los archivos existentes, solo se modifica `Main.java`, para crear la instancia del nuevo tipo y pasarla a `transferir()`. El tipo se define en una clase nueva que implementa la interfaz `TipoTransaccion` y sus dos métodos: `getNombre()`, que devuelve el nombre del tipo que se registra en la auditoría, y `calcularComision(double monto)`, que contiene la regla de comisión propia de ese tipo. Como `TransaccionService` trabaja con la interfaz y no con tipos concretos, ni ella ni los tipos ya existentes (`MismoBanco`, `OtroBanco` e `Internacional`) necesitan cambios.
+
+### Punto de control L
+
+Corrijan la jerarquía de cuentas para que el cobro de cuota de manejo nunca pueda explotar por culpa de un CDT.
+
+**Pregunta de control:** ¿Su solución detecta el error al compilar (o con el verificador de tipos de su lenguaje) o al ejecutar? ¿Por qué es mejor lo primero? Si alguien propone "envolver el retiro en un `try`/`catch` e ignorar los CDT", ¿por qué eso no resuelve el problema de diseño?
+
+**Respuesta:**
+
+- **¿Al compilar o al ejecutar?** Al compilar. `CobroCuotaManejo.cobrarMensual()` ahora recibe una `List<CuentaTransaccional>`, y `CDT` hereda de `Cuenta` pero no de `CuentaTransaccional`. Si alguien intenta incluir un CDT en el cobro, el compilador rechaza el código con un error de tipos incompatibles y el programa ni siquiera llega a ejecutarse.
+- **¿Por qué es mejor?** Porque el error aparece mientras se desarrolla, antes de que el código llegue a producción. Un error en tiempo de ejecución, en cambio, solo se manifiesta cuando se da el caso concreto (por ejemplo, un CDT en la posición 500 000 del cobro nocturno): puede pasar desapercibido en las pruebas y terminar afectando a los clientes con cobros incompletos o fallas en tiempo real.
+- **¿Por qué un `try`/`catch` que ignore los CDT no resuelve el problema?** Porque solo oculta el síntoma. El diseño seguiría diciendo que un CDT es una cuenta que permite retiros, cuando en realidad no lo es. Cada clase que use cuentas tendría que recordar esa excepción y protegerse por su cuenta, y bastaría con que una sola lo olvidara para que el error volviera. Corregir la jerarquía, en cambio, deja explícito en los tipos qué cuentas permiten retiros y cuáles no, y el compilador se encarga de hacerlo cumplir.
