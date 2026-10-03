@@ -218,3 +218,11 @@ Separen las responsabilidades que hoy están mezcladas en `TransaccionService.tr
 - **¿Qué hace `TransaccionService`?** Orquesta la transferencia de una cuenta origen a una cuenta destino.
 - **¿Aparece la palabra "y"?** No. La clase ya no valida, calcula, guarda, imprime y audita por su cuenta: solo coordina el orden de los pasos y delega cada uno en una clase con una única responsabilidad (`ValidadorTransaccion`, `CalculadoraComision`, `OracleRepositorio`, `ImpresoraComprobante`, `SmsGateway` y `Auditoria`).
 - **Si el área legal pide cambiar el formato del comprobante, ¿qué archivo tocan?** Solo `ImpresoraComprobante.java`. `TransaccionService` y el código que mueve el dinero no se modifican.
+
+### Punto de control O
+
+Hoy, agregar un tipo de transferencia obliga a editar el `switch`. Cámbienlo para que un tipo nuevo se agregue creando código, no editando el existente.
+
+**Pregunta de control:** Si mañana llega un tipo de transferencia nuevo, ¿qué archivos existentes tendrían que modificar? Enumérenlos. Lo ideal es que solo aparezca el punto donde se arma el sistema (el programa principal).
+
+**Respuesta:** De los archivos existentes, solo se modifica `Main.java`, para crear la instancia del nuevo tipo y pasarla a `transferir()`. El tipo se define en una clase nueva que implementa la interfaz `TipoTransaccion` y sus dos métodos: `getNombre()`, que devuelve el nombre del tipo que se registra en la auditoría, y `calcularComision(double monto)`, que contiene la regla de comisión propia de ese tipo. Como `TransaccionService` trabaja con la interfaz y no con tipos concretos, ni ella ni los tipos ya existentes (`MismoBanco`, `OtroBanco` e `Internacional`) necesitan cambios.

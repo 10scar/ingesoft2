@@ -8,7 +8,8 @@ public class Main {
         Cuenta cdtAna = new CDT("CDT-9", "Ana", 10_000_000, LocalDate.now().plusMonths(6));
 
         TransaccionService servicio = new TransaccionService();
-        servicio.transferir(ana, luis, 150_000, "OTRO_BANCO");
+        TipoTransaccion tipo = new OtroBanco();
+        servicio.transferir(ana, luis, 150_000, tipo);
 
         new CobroCuotaManejo().cobrarMensual(List.of(ana, luis));
 

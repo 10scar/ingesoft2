@@ -6,7 +6,7 @@ public class TransaccionService {
     private final ImpresoraComprobante comprobante = new ImpresoraComprobante();
     private final Auditoria auditoria = new Auditoria();
     
-    public void transferir(Cuenta origen, Cuenta destino, double monto, String tipo) {
+    public void transferir(Cuenta origen, Cuenta destino, double monto, TipoTransaccion tipo) {
         // 1. Validación
         validador.validar(monto);
 
@@ -27,6 +27,6 @@ public class TransaccionService {
         sms.enviar(origen.getTitular(), "Transferiste $" + monto + " a la cuenta " + destino.getNumero());
 
         // 7. Auditoría
-        auditoria.registrar(tipo, origen, destino, monto);
+        auditoria.registrar(tipo.getNombre(), origen, destino, monto);
     }
 }
