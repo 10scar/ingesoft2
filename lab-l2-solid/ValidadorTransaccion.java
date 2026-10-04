@@ -1,5 +1,6 @@
 public class ValidadorTransaccion {
-    public void validar(double monto) {
+    public void validar(double monto, TipoTransaccion tipo) {
+        if (tipo == null) throw new IllegalArgumentException("Tipo de transferencia desconocido");
         if (monto <= 0) throw new IllegalArgumentException("Monto inválido");
         if (monto > 5_000_000) throw new IllegalArgumentException("Supera el tope diario");
     }

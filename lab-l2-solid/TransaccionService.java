@@ -13,7 +13,7 @@ public class TransaccionService {
     
     public void transferir(CuentaTransaccional origen, Cuenta destino, double monto, TipoTransaccion tipo) {
         // 1. Validación
-        validador.validar(monto);
+        validador.validar(monto, tipo);
 
         // 2. Cálculo de la comisión
         double comision = calculadora.calcular(monto, tipo);

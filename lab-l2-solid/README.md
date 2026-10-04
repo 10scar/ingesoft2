@@ -317,3 +317,26 @@ SMS reales enviados: 0 (notificador falso recibió 1)
 ```
 
 A diferencia del intento del bloque 1, ya no aparece ninguna línea `[ORACLE]` ni `[SMS]`: la prueba verifica la comisión de $7.500 sin conectarse a la base de datos de producción ni enviarle un mensaje al cliente.
+
+## Bloque 3 — Pruebas unitarias
+
+Demostrar que el diseño nuevo se puede probar sin base de datos, sin SMS y en milisegundos.
+
+> **Dobles de prueba.** Un doble de prueba es una implementación falsa de una abstracción, hecha solo para las pruebas. Por ejemplo, un repositorio que guarda las transacciones en una lista en memoria en vez de en Oracle, o un notificador que anota los mensajes en vez de enviarlos. Solo es posible usarlos si la clase que se prueba depende de abstracciones (punto de control D). Si en su lenguaje usan un framework de mocks (Mockito, unittest.mock, Moq, Jest, etc.), también es válido.
+
+Usen el framework de pruebas de su lenguaje (JUnit, pytest, xUnit, Jest, Vitest, flutter_test, XCTest, go test, etc.) y escriban como mínimo estas pruebas:
+
+1. Una transferencia al mismo banco no cobra comisión y mueve exactamente el monto entre las dos cuentas.
+2. Una transferencia a otro banco cobra $7.500 de comisión y descuenta monto + comisión de la cuenta de origen.
+3. Si el saldo es insuficiente, la transferencia se rechaza y no se guarda nada ni se notifica al cliente.
+4. Cada transferencia exitosa se guarda una sola vez y genera una sola notificación.
+5. Un tipo de transferencia desconocido se rechaza y el saldo de la cuenta de origen no cambia.
+
+**Pregunta de control:** ¿Cuánto tardan en ejecutarse todas sus pruebas? ¿Cuántas líneas de `TransaccionService` tuvieron que cambiar para poder probarla? ¿Qué habría pasado si intentaran estas mismas pruebas en el bloque 1?
+
+**Respuesta:**
+
+- **¿Cuánto tardan?** Las cinco pruebas de `TransaccionServiceTest` se ejecutan en unos 200 ms (entre 180 y 210 ms según la ejecución), sin conectarse a ninguna base de datos ni enviar mensajes.
+- **¿Cuántas líneas de `TransaccionService` cambiaron?** Ninguna para poder probarla. La clase ya era testeable desde el punto de control D: como recibe el `RepositorioTransacciones` y el `Notificador` por el constructor, bastó con crear dos dobles de prueba (`RepositorioEnMemoria`, que guarda las transacciones en una lista, y `NotificadorFalso`, que anota los mensajes en vez de enviarlos) y pasárselos al construirla. La única línea que se tocó fue la llamada al validador, para que también reciba el tipo (ver la nota sobre la prueba 5); fue una corrección de comportamiento, no un requisito para poder probar la clase.
+- **¿Qué habría pasado en el bloque 1?** No se habrían podido hacer como pruebas unitarias. `TransaccionService` creaba internamente `OracleRepositorio` y `SmsGateway` con `new`, así que la única opción era ejecutarlas con los servicios reales: cada prueba escribiría en la base de datos de producción y le enviaría un SMS al cliente, sería lenta y dependería de que esos servicios estuvieran disponibles. Además, no habría forma de verificar qué se guardó ni cuántas notificaciones se enviaron. La alternativa sería crear un duplicado completo de la clase con servicios falsos, pero entonces las pruebas verificarían esa copia y no el código real.
+- **Nota sobre la prueba 5:** desde el punto de control O, el tipo de transferencia es un objeto que implementa `TipoTransaccion`, así que un tipo mal escrito o inexistente ya no compila. El único "tipo desconocido" que puede llegar en ejecución es `null`. Para rechazarlo de forma explícita, `ValidadorTransaccion.validar(monto, tipo)` lanza `IllegalArgumentException("Tipo de transferencia desconocido")`, el mismo mensaje que daba el `switch` original, antes de calcular la comisión o mover dinero. La prueba verifica ese rechazo y que los saldos no cambian, que no se guarda nada y que no se notifica al cliente.
