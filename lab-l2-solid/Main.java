@@ -8,8 +8,9 @@ public class Main {
         Cuenta cdtAna = new CDT("CDT-9", "Ana", 10_000_000, LocalDate.now().plusMonths(6));
 
         Notificador notificador = new NotificadorCompuesto(List.of(new SmsGateway(), new PushGateway()));
+        RegistroTransaccion registro = new RegistroCompuesto(List.of(new Auditoria(), new SistemaAntifraude()));
         TransaccionService servicio = new TransaccionService(new ValidadorTransaccion(), new CalculadoraComision(),
-                new OracleRepositorio(), new ImpresoraComprobante(), notificador, new Auditoria());
+                new OracleRepositorio(), new ImpresoraComprobante(), notificador, registro);
         TipoTransaccion tipo = new OtroBanco();
         servicio.transferir(ana, luis, 150_000, tipo);
 
