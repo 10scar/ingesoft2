@@ -17,6 +17,20 @@ public class TransaccionService {
     }
     
     public void transferir(CuentaTransaccional origen, Cuenta destino, double monto, TipoTransaccion tipo) {
+        ejecutarTransaccion(origen, destino.getNumero(), monto, tipo, 
+                () -> destino.depositar(monto),
+                "Transferiste $" + monto + " a la cuenta " + destino.getNumero());
+    }
+
+    public void pagarServicio(CuentaTransaccional origen, String referenciaFactura, double monto) {
+        TipoTransaccion tipo = new ServicioPublico();
+        ejecutarTransaccion(origen, referenciaFactura, monto, tipo, 
+                () -> {},
+                "Pagaste $" + monto + " de la factura " + referenciaFactura);
+    }
+
+    private void ejecutarTransaccion(CuentaTransaccional origen, String destino, double monto,
+                                     TipoTransaccion tipo, Runnable accionDestino, String mensajeNotificacion) {
         // 1. Validación
         validador.validar(monto, tipo);
 
@@ -25,18 +39,18 @@ public class TransaccionService {
 
         // 3. Movimiento del dinero
         origen.retirar(monto + comision);
-        destino.depositar(monto);
+        accionDestino.run();
 
         // 4. Persistencia
-        repositorio.guardarTransaccion(origen.getNumero(), destino.getNumero(), monto, comision);
+        repositorio.guardarTransaccion(origen.getNumero(), destino, monto, comision);
 
         // 5. Comprobante
         comprobante.imprimir(origen, destino, monto, comision);
 
         // 6. Notificación
-        notificador.enviar(origen.getTitular(), "Transferiste $" + monto + " a la cuenta " + destino.getNumero());
+        notificador.enviar(origen.getTitular(), mensajeNotificacion);
 
-        // 7. Auditoría
+        // 7. Auditoría y antifraude
         registro.registrar(tipo.getNombre(), origen, destino, monto);
     }
 }

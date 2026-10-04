@@ -14,6 +14,8 @@ public class Main {
         TipoTransaccion tipo = new OtroBanco();
         servicio.transferir(ana, luis, 150_000, tipo);
 
+        servicio.pagarServicio(ana, "FAC-AGUA-2026", 184_300);
+
         new CobroCuotaManejo().cobrarMensual(List.of(ana, luis));
 
         List<GeneradorExtracto> productos =

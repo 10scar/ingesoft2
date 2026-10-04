@@ -413,3 +413,45 @@ Para cada requerimiento:
 **Para cada requerimiento se creo un archivo test para su criterio de aceptación y algunos extra que consideramos**
 
 **Commits:** uno por requerimiento: `req-1`, `req-2`, `req-3`, `req-4` y `req-5`.
+
+## Bloque 5 — Revisión cruzada
+
+
+Grupo a cargo de la revisión:
+
+- Deivid Farid Ardila Herrera
+- Angel David Beltran Garcia
+
+Comprobar si el diseño es fácil de extender para alguien que no lo escribió.
+
+1. Intercambien su repositorio con otra pareja (el docente indica con cuál). No pueden explicarle su código: el código debe explicarse solo.
+2. El docente entregará un requerimiento nuevo. Impleméntenlo sobre el código de la otra pareja.
+3. Llenen la lista de revisión y entréguensela a la otra pareja.
+
+### Requerimiento 6
+Permite a los clientes pagar sus facturas de servicios públicos (agua, luz, gas, internet) desde una cuenta bancaria indicando la referencia de la factura y el valor. Se cobra una comisión de $1.500 por cada pago (un pago de $184.300 descuenta $185.800 de la cuenta origen).Aplican las mismas reglas que en transferencias (monto positivo y dentro del tope diario de $5.000.000). Guarda la transacción en base de datos con la referencia de factura como destino, imprime el comprobante, notifica al cliente (SMS y Push) y pasa por auditoría y antifraude. Un CDT no puede pagar servicios (garantizado en tiempo de compilación por la jerarquía de cuentas).
+
+---
+
+### Lista de revisión
+
+| Criterio | Sí | No | Observaciones |
+| :--- | :---: | :---: | :--- |
+| Entendimos qué hace cada clase leyendo solo su nombre y sus métodos públicos. | **X** | | Los nombres son autoexplicativos (`CuentaTransaccional`, `CalculadoraComision`, `NotificadorCompuesto`, etc.). |
+| Pudimos reutilizar piezas existentes sin copiar y pegar código. | **X** | | Reutilizamos `ValidadorTransaccion`, `CalculadoraComision`, `RepositorioTransacciones`, `ImpresoraComprobante`, `Notificador`, `RegistroCompuesto` y el pipeline de `TransaccionService`. |
+| Implementamos el requerimiento sin modificar la lógica de clases existentes. | **X** | | Solo se agregaron extensiones (`ServicioPublico`) y métodos sin alterar la lógica de negocio que ya tenían. |
+| No encontramos métodos vacíos ni que lancen "no aplica". | **X** | | El diseño que implementaron eliminó los métodos vacíos o que lanzaban excepciones no esperadas. |
+| No encontramos if/switch por tipo que tuvimos que extender. | **X** | | Ahora está implementado `ServicioPublico implements TipoTransaccion`. |
+| Las pruebas existentes siguieron pasando después de nuestro cambio. | **X** | | Las 15 pruebas unitarias originales pasaron. |
+| No encontramos abstracciones innecesarias (interfaces que no aportan). | **X** | | Cada interfaz cumple un rol claro y permitió reemplazar dependencias reales por dobles de prueba en memoria. |
+
+**Lo mejor del diseño:**
+- La jerarquía de tipos (`CuentaTransaccional` vs `CDT`) que impide retiros o pagos indebidos directamente en tiempo de compilación (**LSP**).
+- La abstracción `TipoTransaccion`, que permite extender nuevas operaciones con reglas propias de comisión sin tocar calculadoras ni validadores (**OCP**).
+- El patrón Composite en `NotificadorCompuesto` y `RegistroCompuesto`, gracias al cual las notificaciones multicanal (SMS + Push) y la seguridad (Auditoría + Antifraude) funcionaron inmediatamente para pagos de servicios sin añadir código extra.
+- La inversión de dependencias (**DIP**), que facilita crear pruebas unitarias rápidas y limpias con dobles de prueba en memoria.
+
+**Lo que nos costó entender o extender:**
+Inicialmente `Comprobante` y `RegistroTransaccion` recibían un objeto `Cuenta` como destino (`Cuenta destino`). En el pago de facturas el destino es una referencia (`String`) y no una cuenta bancaria con saldo. Para evitar crear una cuenta artificial que rompiera LSP e ISP, sobrecargamos ambas interfaces para recibir `String`, manteniendo métodos `default` para preservar total retrocompatibilidad con las transferencias existentes.
+
+**Commit (en el repositorio de la otra pareja, en una rama):** `revision-cruzada`

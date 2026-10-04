@@ -8,7 +8,7 @@ public class RegistroCompuesto implements RegistroTransaccion {
     }
 
     @Override
-    public void registrar(String tipo, Cuenta origen, Cuenta destino, double monto) {
+    public void registrar(String tipo, Cuenta origen, String destino, double monto) {
         for (RegistroTransaccion registro : registros) {
             registro.registrar(tipo, origen, destino, monto);
         }
