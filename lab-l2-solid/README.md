@@ -340,3 +340,40 @@ Usen el framework de pruebas de su lenguaje (JUnit, pytest, xUnit, Jest, Vitest,
 - **¿Cuántas líneas de `TransaccionService` cambiaron?** Ninguna para poder probarla. La clase ya era testeable desde el punto de control D: como recibe el `RepositorioTransacciones` y el `Notificador` por el constructor, bastó con crear dos dobles de prueba (`RepositorioEnMemoria`, que guarda las transacciones en una lista, y `NotificadorFalso`, que anota los mensajes en vez de enviarlos) y pasárselos al construirla. La única línea que se tocó fue la llamada al validador, para que también reciba el tipo (ver la nota sobre la prueba 5); fue una corrección de comportamiento, no un requisito para poder probar la clase.
 - **¿Qué habría pasado en el bloque 1?** No se habrían podido hacer como pruebas unitarias. `TransaccionService` creaba internamente `OracleRepositorio` y `SmsGateway` con `new`, así que la única opción era ejecutarlas con los servicios reales: cada prueba escribiría en la base de datos de producción y le enviaría un SMS al cliente, sería lenta y dependería de que esos servicios estuvieran disponibles. Además, no habría forma de verificar qué se guardó ni cuántas notificaciones se enviaron. La alternativa sería crear un duplicado completo de la clase con servicios falsos, pero entonces las pruebas verificarían esa copia y no el código real.
 - **Nota sobre la prueba 5:** desde el punto de control O, el tipo de transferencia es un objeto que implementa `TipoTransaccion`, así que un tipo mal escrito o inexistente ya no compila. El único "tipo desconocido" que puede llegar en ejecución es `null`. Para rechazarlo de forma explícita, `ValidadorTransaccion.validar(monto, tipo)` lanza `IllegalArgumentException("Tipo de transferencia desconocido")`, el mismo mensaje que daba el `switch` original, antes de calcular la comisión o mover dinero. La prueba verifica ese rechazo y que los saldos no cambian, que no se guarda nada y que no se notifica al cliente.
+
+## Bloque 4 — "Negocio pidió cambios"
+
+Poner a prueba el diseño con requerimientos que no conocían.
+
+> "Buenas tardes, equipo. Estos son los cambios priorizados para el próximo lanzamiento de la app. Gracias por su apoyo." — Gerencia de Canales Digitales
+
+Para cada requerimiento:
+
+1. Antes de programar, miren el código original (está en el commit `bloque-0-codigo-base`) y estimen cuántos archivos existentes habría que modificar allí.
+2. Implementen el requerimiento sobre su código refactorizado.
+3. Registren cuántos archivos existentes modificaron realmente y cuántos archivos nuevos crearon.
+4. Ejecuten las pruebas del bloque 3: deben seguir pasando.
+
+### Requerimientos
+
+| Req. | Nombre | Descripción | Criterio de aceptación |
+| --- | --- | --- | --- |
+| R1 | Transferencias por llave | Los clientes podrán transferir usando una llave (su número de celular o su cédula) en lugar del número de cuenta. Estas transferencias son inmediatas y no tienen comisión. | Una transferencia de tipo `LLAVE` por $50.000 descuenta exactamente $50.000 de la cuenta de origen. (No es necesario implementar la búsqueda de la cuenta a partir de la llave.) |
+| R2 | Cuenta infantil | Nuevo producto para menores de edad. Recibe depósitos sin límite, pero sus retiros no pueden superar $200.000 en un mismo día. Se debe poder usar como origen de transferencias y se le cobra la cuota de manejo como a cualquier cuenta. | Si la cuenta ya retiró $150.000 hoy, un retiro de $60.000 se rechaza y el saldo no cambia. |
+| R3 | Notificaciones push | Además del SMS, el cliente debe recibir una notificación push en la app por cada transferencia. | Por cada transferencia exitosa aparecen en consola un mensaje `[SMS]` y un mensaje `[PUSH]`. |
+| R4 | Sistema antifraude | Por regulación, cada transacción exitosa debe enviarse al sistema antifraude del banco (simulado con un mensaje en consola que empiece con `[ANTIFRAUDE]`). La auditoría actual se mantiene. | Por cada transferencia exitosa aparecen un mensaje `[AUDITORIA]` y uno `[ANTIFRAUDE]`. Una transferencia rechazada no genera ninguno. |
+| R5 | Migración a PostgreSQL | El banco dejará de pagar la licencia de Oracle. Las transacciones se guardarán en PostgreSQL (simulado con `[POSTGRES]`). La clase de Oracle no se borra: se conserva por si hay que devolverse durante la migración. | El programa guarda en PostgreSQL y las pruebas unitarias no cambian. |
+
+### Registro de cambios
+
+| Req. | Archivos a modificar en el código original (estimado) | Archivos existentes modificados (real) | Archivos nuevos | ¿Se rompió alguna prueba? |
+| --- | --- | --- | --- | --- |
+| R1 | 1 (`TransaccionService.java`, para agregar un `case "LLAVE"` al `switch` de la comisión) | 0 | 2 (`Llave.java` y `test/LlaveTest.java`) | No |
+| R2 | | | | |
+| R3 | | | | |
+| R4 | | | | |
+| R5 | | | | |
+
+**Para ca requerimiento se creo un archivo test para su criterio de aceptación** 
+
+**Commits:** uno por requerimiento: `req-1`, `req-2`, `req-3`, `req-4` y `req-5`.
