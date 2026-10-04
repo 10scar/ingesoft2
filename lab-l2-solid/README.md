@@ -183,15 +183,21 @@ PASA: comisión = 7500
 - **S (responsabilidad única):** el cálculo de la comisión no existe como una unidad que se pueda probar por separado. Es una variable local dentro de `transferir()`, mezclada con la persistencia y la notificación. No hay forma de pedir solo la comisión: hay que ejecutar la transferencia completa e inferirla de forma indirecta, restando saldos.
 - **D (inversión de dependencias):** este es el impedimento directo. `TransaccionService` crea `OracleRepositorio` y `SmsGateway` con `new` dentro de la propia clase, y depende de clases concretas en lugar de interfaces. Por eso la prueba no puede reemplazarlas por dobles de prueba (por ejemplo, un repositorio en memoria y un notificador falso que no envíe nada). Aunque la comisión estuviera separada, `transferir()` seguiría yendo a Oracle y al SMS.
 
+
+
 ### 1.3 Medición "antes"
 
-| Métrica | Antes |
-| --- | --- |
-| Líneas del método `transferir` | 23 (líneas de código, sin contar líneas en blanco ni comentarios) |
+
+| Métrica                                                                     | Antes                                                                                                |
+| --------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------- |
+| Líneas del método `transferir`                                              | 23 (líneas de código, sin contar líneas en blanco ni comentarios)                                    |
 | Número de razones distintas por las que `TransaccionService` podría cambiar | 7 (validación, comisión, movimiento del dinero, persistencia, comprobante, notificación y auditoría) |
-| Clases concretas que `TransaccionService` crea con `new` | 2 (`OracleRepositorio` y `SmsGateway`) |
-| Métodos vacíos o que lanzan excepción por "no aplica" | 3 (`TarjetaCredito.depositar()`, `CreditoVivienda.depositar()` y `CreditoVivienda.retirar()`) |
-| ¿Se puede probar `transferir` sin Oracle ni SMS? (Sí/No) | No (ver Experimento 2) |
+| Clases concretas que `TransaccionService` crea con `new`                    | 2 (`OracleRepositorio` y `SmsGateway`)                                                               |
+| Métodos vacíos o que lanzan excepción por "no aplica"                       | 3 (`TarjetaCredito.depositar()`, `CreditoVivienda.depositar()` y `CreditoVivienda.retirar()`)        |
+| ¿Se puede probar `transferir` sin Oracle ni SMS? (Sí/No)                    | No (ver Experimento 2)                                                                               |
+
+
+
 
 ### 1.4 Diagrama de clases del código original
 
@@ -207,6 +213,8 @@ Trabajen en el orden de los puntos de control. Al terminar cada uno: (1) ejecute
 
 > **Tip: compara la salida automáticamente.** En Linux o macOS: `diff salida_original.txt salida_nueva.txt`. En Windows (PowerShell): `Compare-Object (gc salida_original.txt) (gc salida_nueva.txt)`. Solo deberían cambiar la fecha y la hora de la auditoría. A esta técnica se le llama **prueba de caracterización**: antes de refactorizar código sin pruebas, se "congela" lo que hace hoy para detectar cualquier cambio accidental.
 
+
+
 ### Punto de control S
 
 Separen las responsabilidades que hoy están mezcladas en `TransaccionService.transferir`.
@@ -215,9 +223,11 @@ Separen las responsabilidades que hoy están mezcladas en `TransaccionService.tr
 
 **Respuesta:**
 
-- **¿Qué hace `TransaccionService`?** Orquesta la transferencia de una cuenta origen a una cuenta destino.
+- **¿Qué hace** `TransaccionService`**?** Orquesta la transferencia de una cuenta origen a una cuenta destino.
 - **¿Aparece la palabra "y"?** No. La clase ya no valida, calcula, guarda, imprime y audita por su cuenta: solo coordina el orden de los pasos y delega cada uno en una clase con una única responsabilidad (`ValidadorTransaccion`, `CalculadoraComision`, `OracleRepositorio`, `ImpresoraComprobante`, `SmsGateway` y `Auditoria`).
 - **Si el área legal pide cambiar el formato del comprobante, ¿qué archivo tocan?** Solo `ImpresoraComprobante.java`. `TransaccionService` y el código que mueve el dinero no se modifican.
+
+
 
 ### Punto de control O
 
@@ -237,7 +247,9 @@ Corrijan la jerarquía de cuentas para que el cobro de cuota de manejo nunca pue
 
 - **¿Al compilar o al ejecutar?** Al compilar. `CobroCuotaManejo.cobrarMensual()` ahora recibe una `List<CuentaTransaccional>`, y `CDT` hereda de `Cuenta` pero no de `CuentaTransaccional`. Si alguien intenta incluir un CDT en el cobro, el compilador rechaza el código con un error de tipos incompatibles y el programa ni siquiera llega a ejecutarse.
 - **¿Por qué es mejor?** Porque el error aparece mientras se desarrolla, antes de que el código llegue a producción. Un error en tiempo de ejecución, en cambio, solo se manifiesta cuando se da el caso concreto (por ejemplo, un CDT en la posición 500 000 del cobro nocturno): puede pasar desapercibido en las pruebas y terminar afectando a los clientes con cobros incompletos o fallas en tiempo real.
-- **¿Por qué un `try`/`catch` que ignore los CDT no resuelve el problema?** Porque solo oculta el síntoma. El diseño seguiría diciendo que un CDT es una cuenta que permite retiros, cuando en realidad no lo es. Cada clase que use cuentas tendría que recordar esa excepción y protegerse por su cuenta, y bastaría con que una sola lo olvidara para que el error volviera. Corregir la jerarquía, en cambio, deja explícito en los tipos qué cuentas permiten retiros y cuáles no, y el compilador se encarga de hacerlo cumplir.
+- **¿Por qué un** `try`**/**`catch` **que ignore los CDT no resuelve el problema?** Porque solo oculta el síntoma. El diseño seguiría diciendo que un CDT es una cuenta que permite retiros, cuando en realidad no lo es. Cada clase que use cuentas tendría que recordar esa excepción y protegerse por su cuenta, y bastaría con que una sola lo olvidara para que el error volviera. Corregir la jerarquía, en cambio, deja explícito en los tipos qué cuentas permiten retiros y cuáles no, y el compilador se encarga de hacerlo cumplir.
+
+
 
 ### Punto de control I
 
@@ -251,6 +263,8 @@ Corrijan `ProductoBancario` para que ningún producto tenga que implementar mét
 - **¿Qué interfaz necesitó?** La interfaz `GeneradorExtracto`, con un único método: `generarExtracto()`. La implementan `Cuenta`, `TarjetaCredito` y `CreditoVivienda`, cada una con su propio formato.
 - **¿Por qué no necesitó conocer los demás métodos?** Porque es una interfaz segregada: contiene solo lo que todos los productos tienen en común, que es poder generar su extracto. Quien recorre los extractos depende únicamente de ese método, sin saber si el producto maneja saldo, deuda o intereses. Las operaciones propias de cada producto quedaron en otros tipos (`ProductoCredito` para `calcularIntereses()` y `pagarCuota()`, y `Cuenta`/`CuentaTransaccional` para `depositar()` y `retirar()`), así que ningún producto tiene que implementar métodos que no le aplican.
 
+
+
 ### Punto de control D
 
 Hagan que `TransaccionService` deje de crear sus dependencias con `new` y que dependa de abstracciones. Todo el "armado" del sistema debe quedar en un solo lugar (el programa principal).
@@ -259,7 +273,7 @@ Hagan que `TransaccionService` deje de crear sus dependencias con `new` y que de
 
 **Respuesta:**
 
-- **¿Cuántas clases concretas conoce ahora `TransaccionService`?** Cuatro: `ValidadorTransaccion`, `CalculadoraComision`, `ImpresoraComprobante` y `Auditoria`. Ya no conoce las dos de infraestructura, `OracleRepositorio` y `SmsGateway`, que eran las que impedían probar la clase y cambiar de proveedor. Se invirtieron las dependencias volátiles, es decir, las que pueden tener varias implementaciones (la base de datos y el canal de notificación), mediante las interfaces `RepositorioTransacciones` y `Notificador`. Las otras cuatro son lógica interna estable con una sola implementación prevista, y crearles interfaces agregaría complejidad sin beneficio.
+- **¿Cuántas clases concretas conoce ahora** `TransaccionService`**?** Cuatro: `ValidadorTransaccion`, `CalculadoraComision`, `ImpresoraComprobante` y `Auditoria`. Ya no conoce las dos de infraestructura, `OracleRepositorio` y `SmsGateway`, que eran las que impedían probar la clase y cambiar de proveedor. Se invirtieron las dependencias volátiles, es decir, las que pueden tener varias implementaciones (la base de datos y el canal de notificación), mediante las interfaces `RepositorioTransacciones` y `Notificador`. Las otras cuatro son lógica interna estable con una sola implementación prevista, y crearles interfaces agregaría complejidad sin beneficio.
 - **¿Quién decide si se usa Oracle o si se notifica por SMS?** `Main`, al construir el `TransaccionService`: `new TransaccionService(new OracleRepositorio(), new SmsGateway())`.
 - **¿Ya es posible la prueba del experimento 2?** Sí. Como el repositorio y el notificador llegan por el constructor, la prueba puede pasarle a `TransaccionService` dobles de prueba que no se conectan a Oracle ni envían SMS:
 
@@ -337,9 +351,11 @@ Usen el framework de pruebas de su lenguaje (JUnit, pytest, xUnit, Jest, Vitest,
 **Respuesta:**
 
 - **¿Cuánto tardan?** Las cinco pruebas de `TransaccionServiceTest` se ejecutan en unos 200 ms (entre 180 y 210 ms según la ejecución), sin conectarse a ninguna base de datos ni enviar mensajes.
-- **¿Cuántas líneas de `TransaccionService` cambiaron?** Ninguna para poder probarla. La clase ya era testeable desde el punto de control D: como recibe el `RepositorioTransacciones` y el `Notificador` por el constructor, bastó con crear dos dobles de prueba (`RepositorioEnMemoria`, que guarda las transacciones en una lista, y `NotificadorFalso`, que anota los mensajes en vez de enviarlos) y pasárselos al construirla. La única línea que se tocó fue la llamada al validador, para que también reciba el tipo (ver la nota sobre la prueba 5); fue una corrección de comportamiento, no un requisito para poder probar la clase.
+- **¿Cuántas líneas de** `TransaccionService` **cambiaron?** Ninguna para poder probarla. La clase ya era testeable desde el punto de control D: como recibe el `RepositorioTransacciones` y el `Notificador` por el constructor, bastó con crear dos dobles de prueba (`RepositorioEnMemoria`, que guarda las transacciones en una lista, y `NotificadorFalso`, que anota los mensajes en vez de enviarlos) y pasárselos al construirla. La única línea que se tocó fue la llamada al validador, para que también reciba el tipo (ver la nota sobre la prueba 5); fue una corrección de comportamiento, no un requisito para poder probar la clase.
 - **¿Qué habría pasado en el bloque 1?** No se habrían podido hacer como pruebas unitarias. `TransaccionService` creaba internamente `OracleRepositorio` y `SmsGateway` con `new`, así que la única opción era ejecutarlas con los servicios reales: cada prueba escribiría en la base de datos de producción y le enviaría un SMS al cliente, sería lenta y dependería de que esos servicios estuvieran disponibles. Además, no habría forma de verificar qué se guardó ni cuántas notificaciones se enviaron. La alternativa sería crear un duplicado completo de la clase con servicios falsos, pero entonces las pruebas verificarían esa copia y no el código real.
 - **Nota sobre la prueba 5:** desde el punto de control O, el tipo de transferencia es un objeto que implementa `TipoTransaccion`, así que un tipo mal escrito o inexistente ya no compila. El único "tipo desconocido" que puede llegar en ejecución es `null`. Para rechazarlo de forma explícita, `ValidadorTransaccion.validar(monto, tipo)` lanza `IllegalArgumentException("Tipo de transferencia desconocido")`, el mismo mensaje que daba el `switch` original, antes de calcular la comisión o mover dinero. La prueba verifica ese rechazo y que los saldos no cambian, que no se guarda nada y que no se notifica al cliente.
+
+
 
 ## Bloque 4 — "Negocio pidió cambios"
 
@@ -354,26 +370,34 @@ Para cada requerimiento:
 3. Registren cuántos archivos existentes modificaron realmente y cuántos archivos nuevos crearon.
 4. Ejecuten las pruebas del bloque 3: deben seguir pasando.
 
+
+
 ### Requerimientos
 
-| Req. | Nombre | Descripción | Criterio de aceptación |
-| --- | --- | --- | --- |
-| R1 | Transferencias por llave | Los clientes podrán transferir usando una llave (su número de celular o su cédula) en lugar del número de cuenta. Estas transferencias son inmediatas y no tienen comisión. | Una transferencia de tipo `LLAVE` por $50.000 descuenta exactamente $50.000 de la cuenta de origen. (No es necesario implementar la búsqueda de la cuenta a partir de la llave.) |
-| R2 | Cuenta infantil | Nuevo producto para menores de edad. Recibe depósitos sin límite, pero sus retiros no pueden superar $200.000 en un mismo día. Se debe poder usar como origen de transferencias y se le cobra la cuota de manejo como a cualquier cuenta. | Si la cuenta ya retiró $150.000 hoy, un retiro de $60.000 se rechaza y el saldo no cambia. |
-| R3 | Notificaciones push | Además del SMS, el cliente debe recibir una notificación push en la app por cada transferencia. | Por cada transferencia exitosa aparecen en consola un mensaje `[SMS]` y un mensaje `[PUSH]`. |
-| R4 | Sistema antifraude | Por regulación, cada transacción exitosa debe enviarse al sistema antifraude del banco (simulado con un mensaje en consola que empiece con `[ANTIFRAUDE]`). La auditoría actual se mantiene. | Por cada transferencia exitosa aparecen un mensaje `[AUDITORIA]` y uno `[ANTIFRAUDE]`. Una transferencia rechazada no genera ninguno. |
-| R5 | Migración a PostgreSQL | El banco dejará de pagar la licencia de Oracle. Las transacciones se guardarán en PostgreSQL (simulado con `[POSTGRES]`). La clase de Oracle no se borra: se conserva por si hay que devolverse durante la migración. | El programa guarda en PostgreSQL y las pruebas unitarias no cambian. |
+
+| Req. | Nombre                   | Descripción                                                                                                                                                                                                                               | Criterio de aceptación                                                                                                                                                           |
+| ---- | ------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| R1   | Transferencias por llave | Los clientes podrán transferir usando una llave (su número de celular o su cédula) en lugar del número de cuenta. Estas transferencias son inmediatas y no tienen comisión.                                                               | Una transferencia de tipo `LLAVE` por $50.000 descuenta exactamente $50.000 de la cuenta de origen. (No es necesario implementar la búsqueda de la cuenta a partir de la llave.) |
+| R2   | Cuenta infantil          | Nuevo producto para menores de edad. Recibe depósitos sin límite, pero sus retiros no pueden superar $200.000 en un mismo día. Se debe poder usar como origen de transferencias y se le cobra la cuota de manejo como a cualquier cuenta. | Si la cuenta ya retiró $150.000 hoy, un retiro de $60.000 se rechaza y el saldo no cambia.                                                                                       |
+| R3   | Notificaciones push      | Además del SMS, el cliente debe recibir una notificación push en la app por cada transferencia.                                                                                                                                           | Por cada transferencia exitosa aparecen en consola un mensaje `[SMS]` y un mensaje `[PUSH]`.                                                                                     |
+| R4   | Sistema antifraude       | Por regulación, cada transacción exitosa debe enviarse al sistema antifraude del banco (simulado con un mensaje en consola que empiece con `[ANTIFRAUDE]`). La auditoría actual se mantiene.                                              | Por cada transferencia exitosa aparecen un mensaje `[AUDITORIA]` y uno `[ANTIFRAUDE]`. Una transferencia rechazada no genera ninguno.                                            |
+| R5   | Migración a PostgreSQL   | El banco dejará de pagar la licencia de Oracle. Las transacciones se guardarán en PostgreSQL (simulado con `[POSTGRES]`). La clase de Oracle no se borra: se conserva por si hay que devolverse durante la migración.                     | El programa guarda en PostgreSQL y las pruebas unitarias no cambian.                                                                                                             |
+
+
+
 
 ### Registro de cambios
 
-| Req. | Archivos a modificar en el código original (estimado) | Archivos existentes modificados (real) | Archivos nuevos | ¿Se rompió alguna prueba? |
-| --- | --- | --- | --- | --- |
-| R1 | 1 (`TransaccionService.java`, para agregar un `case "LLAVE"` al `switch` de la comisión) | 0 | 2 (`Llave.java` y `test/LlaveTest.java`) | No |
-| R2 | | | | |
-| R3 | | | | |
-| R4 | | | | |
-| R5 | | | | |
 
-**Para ca requerimiento se creo un archivo test para su criterio de aceptación** 
+| Req. | Archivos a modificar en el código original (estimado)                                                                                  | Archivos existentes modificados (real) | Archivos nuevos                                            | ¿Se rompió alguna prueba? |
+| ---- | -------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------- | ---------------------------------------------------------- | ------------------------- |
+| R1   | 1 (`TransaccionService.java`, para agregar un `case "LLAVE"` al `switch` de la comisión)                                               | 0                                      | 2 (`Llave.java` y `test/LlaveTest.java`)                   | No                        |
+| R2   | 0 (bastaba con crear `CuentaInfantil.java` heredando de `Cuenta` y sobrescribiendo `retirar()`) aunque con su mala seguridad anterior. | 0                                      | 2 (`CuentaInfantil.java` y `test/CuentaInfantilTest.java`) | No                        |
+| R3   |                                                                                                                                        |                                        |                                                            |                           |
+| R4   |                                                                                                                                        |                                        |                                                            |                           |
+| R5   |                                                                                                                                        |                                        |                                                            |                           |
+
+
+**Para cada requerimiento se creo un archivo test para su criterio de aceptación y algunos extra que consideramos**
 
 **Commits:** uno por requerimiento: `req-1`, `req-2`, `req-3`, `req-4` y `req-5`.
