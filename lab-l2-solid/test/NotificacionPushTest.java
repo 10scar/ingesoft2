@@ -29,7 +29,8 @@ public class NotificacionPushTest {
         CuentaTransaccional origen = new CuentaAhorros("123", "Juan", 100000);
         CuentaTransaccional destino = new CuentaAhorros("124", "Pedro", 100000);
         Notificador notificador = new NotificadorCompuesto(List.of(new SmsGateway(), new PushGateway()));
-        TransaccionService transaccionService = new TransaccionService(new RepositorioEnMemoria(), notificador);
+        TransaccionService transaccionService = new TransaccionService(new ValidadorTransaccion(), new CalculadoraComision(),
+                new RepositorioEnMemoria(), new ImpresoraComprobante(), notificador, new Auditoria());
 
         transaccionService.transferir(origen, destino, 1000, new MismoBanco());
 

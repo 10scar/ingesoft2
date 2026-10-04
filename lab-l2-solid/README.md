@@ -273,8 +273,14 @@ Hagan que `TransaccionService` deje de crear sus dependencias con `new` y que de
 
 **Respuesta:**
 
-- **¿Cuántas clases concretas conoce ahora** `TransaccionService`**?** Cuatro: `ValidadorTransaccion`, `CalculadoraComision`, `ImpresoraComprobante` y `Auditoria`. Ya no conoce las dos de infraestructura, `OracleRepositorio` y `SmsGateway`, que eran las que impedían probar la clase y cambiar de proveedor. Se invirtieron las dependencias volátiles, es decir, las que pueden tener varias implementaciones (la base de datos y el canal de notificación), mediante las interfaces `RepositorioTransacciones` y `Notificador`. Las otras cuatro son lógica interna estable con una sola implementación prevista, y crearles interfaces agregaría complejidad sin beneficio.
-- **¿Quién decide si se usa Oracle o si se notifica por SMS?** `Main`, al construir el `TransaccionService`: `new TransaccionService(new OracleRepositorio(), new SmsGateway())`.
+- **¿Cuántas clases concretas conoce ahora** `TransaccionService`**?** Ninguna. Recibe sus seis dependencias por el constructor y solo conoce interfaces: `Validador`, `Calculadora`, `RepositorioTransacciones`, `Comprobante`, `Notificador` y `RegistroTransaccion`. Las clases concretas (`ValidadorTransaccion`, `CalculadoraComision`, `OracleRepositorio`, `ImpresoraComprobante`, `SmsGateway` y `Auditoria`) implementan esas interfaces, y `TransaccionService` ya no crea ninguna con `new`.
+- **¿Quién decide si se usa Oracle o si se notifica por SMS?** `Main`, que es el único lugar donde se arma el sistema:
+
+```java
+TransaccionService servicio = new TransaccionService(new ValidadorTransaccion(), new CalculadoraComision(),
+        new OracleRepositorio(), new ImpresoraComprobante(), new SmsGateway(), new Auditoria());
+```
+
 - **¿Ya es posible la prueba del experimento 2?** Sí. Como el repositorio y el notificador llegan por el constructor, la prueba puede pasarle a `TransaccionService` dobles de prueba que no se conectan a Oracle ni envían SMS:
 
 ```java
@@ -306,7 +312,9 @@ public class PruebaComisionOtroBanco {
         CuentaTransaccional origen = new CuentaAhorros("T-1", "Prueba", 1_000_000);
         Cuenta destino = new CuentaAhorros("T-2", "Prueba", 0);
 
-        new TransaccionService(repositorio, notificador).transferir(origen, destino, 100_000, new OtroBanco());
+        new TransaccionService(new ValidadorTransaccion(), new CalculadoraComision(), repositorio,
+                new ImpresoraComprobante(), notificador, new Auditoria())
+                .transferir(origen, destino, 100_000, new OtroBanco());
 
         System.out.println(repositorio.comisiones.equals(List.of(7_500.0)) ? "PASA: comisión guardada = 7500" : "FALLA: " + repositorio.comisiones);
         System.out.println(origen.getSaldo() == 892_500 ? "PASA: saldo origen = 892500" : "FALLA: " + origen.getSaldo());
@@ -331,6 +339,10 @@ SMS reales enviados: 0 (notificador falso recibió 1)
 ```
 
 A diferencia del intento del bloque 1, ya no aparece ninguna línea `[ORACLE]` ni `[SMS]`: la prueba verifica la comisión de $7.500 sin conectarse a la base de datos de producción ni enviarle un mensaje al cliente.
+
+> **Corrección posterior (**`control-D-fix`**):** en la primera versión de este punto solo se invirtieron el repositorio y el notificador, y `TransaccionService` seguía creando con `new` a `ValidadorTransaccion`, `CalculadoraComision`, `ImpresoraComprobante` y `Auditoria`, con el argumento de que eran lógica interna estable. Al leer los requerimientos del bloque 4 se vio que eso no se sostenía. Además, el comprobante y la auditoría escriben hacia afuera, como el SMS, y un requerimiento como el antifraude (R4) habría obligado a editar `TransaccionService` para agregarlo junto a la auditoría. Se agregaron las interfaces `Validador`, `Calculadora`, `Comprobante` y `RegistroTransaccion`, y las pruebas solo cambiaron en la línea que construye el servicio.
+
+
 
 ## Bloque 3 — Pruebas unitarias
 

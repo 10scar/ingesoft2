@@ -16,7 +16,8 @@ public class TransaccionServiceTest {
         destino = new CuentaAhorros("124", "Pedro", 100000);
         repositorio = new RepositorioEnMemoria();
         notificador = new NotificadorFalso();
-        transaccionService = new TransaccionService(repositorio, notificador);
+        transaccionService = new TransaccionService(new ValidadorTransaccion(), new CalculadoraComision(),
+                repositorio, new ImpresoraComprobante(), notificador, new Auditoria());
     }
     @Test
     public void transferenciaMismoBancoNoCobraComision() {

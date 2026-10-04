@@ -35,7 +35,8 @@ public class CuentaInfantilTest {
         CuentaInfantil origen = new CuentaInfantil("INF-1", "Sofía", 500000);
         CuentaTransaccional destino = new CuentaAhorros("124", "Pedro", 100000);
         RepositorioEnMemoria repositorio = new RepositorioEnMemoria();
-        TransaccionService transaccionService = new TransaccionService(repositorio, new NotificadorFalso());
+        TransaccionService transaccionService = new TransaccionService(new ValidadorTransaccion(), new CalculadoraComision(),
+                repositorio, new ImpresoraComprobante(), new NotificadorFalso(), new Auditoria());
 
         transaccionService.transferir(origen, destino, 100000, new MismoBanco());
 

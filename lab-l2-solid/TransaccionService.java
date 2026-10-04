@@ -1,14 +1,19 @@
 public class TransaccionService {
+    private final Validador validador;
+    private final Calculadora calculadora;
     private final RepositorioTransacciones repositorio;
+    private final Comprobante comprobante;
     private final Notificador notificador;
-    private final ValidadorTransaccion validador = new ValidadorTransaccion();
-    private final CalculadoraComision calculadora = new CalculadoraComision();
-    private final ImpresoraComprobante comprobante = new ImpresoraComprobante();
-    private final Auditoria auditoria = new Auditoria();
+    private final RegistroTransaccion registro;
 
-    public TransaccionService(RepositorioTransacciones repositorio, Notificador notificador) {
+    public TransaccionService(Validador validador, Calculadora calculadora, RepositorioTransacciones repositorio,
+            Comprobante comprobante, Notificador notificador, RegistroTransaccion registro) {
+        this.validador = validador;
+        this.calculadora = calculadora;
         this.repositorio = repositorio;
+        this.comprobante = comprobante;
         this.notificador = notificador;
+        this.registro = registro;
     }
     
     public void transferir(CuentaTransaccional origen, Cuenta destino, double monto, TipoTransaccion tipo) {
@@ -32,6 +37,6 @@ public class TransaccionService {
         notificador.enviar(origen.getTitular(), "Transferiste $" + monto + " a la cuenta " + destino.getNumero());
 
         // 7. Auditoría
-        auditoria.registrar(tipo.getNombre(), origen, destino, monto);
+        registro.registrar(tipo.getNombre(), origen, destino, monto);
     }
 }

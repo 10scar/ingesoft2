@@ -1,4 +1,5 @@
-public class ImpresoraComprobante {
+public class ImpresoraComprobante implements Comprobante {
+    @Override
     public void imprimir(Cuenta origen, Cuenta destino, double monto, double comision) {
         System.out.println("===== BANCO ANDINO - COMPROBANTE =====");
         System.out.println("Origen: " + origen.getNumero());

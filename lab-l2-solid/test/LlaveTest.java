@@ -7,7 +7,8 @@ public class LlaveTest {
         CuentaTransaccional origen = new CuentaAhorros("123", "Juan", 100000);
         CuentaTransaccional destino = new CuentaAhorros("124", "Pedro", 100000);
         RepositorioEnMemoria repositorio = new RepositorioEnMemoria();
-        TransaccionService transaccionService = new TransaccionService(repositorio, new NotificadorFalso());
+        TransaccionService transaccionService = new TransaccionService(new ValidadorTransaccion(), new CalculadoraComision(),
+                repositorio, new ImpresoraComprobante(), new NotificadorFalso(), new Auditoria());
 
         transaccionService.transferir(origen, destino, 50000, new Llave());
 

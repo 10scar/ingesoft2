@@ -1,4 +1,5 @@
-public class ValidadorTransaccion {
+public class ValidadorTransaccion implements Validador {
+    @Override
     public void validar(double monto, TipoTransaccion tipo) {
         if (tipo == null) throw new IllegalArgumentException("Tipo de transferencia desconocido");
         if (monto <= 0) throw new IllegalArgumentException("Monto inválido");
