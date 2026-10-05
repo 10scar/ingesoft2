@@ -6,6 +6,11 @@
 
 Universidad Nacional de Colombia · Sede Bogotá · 2026
 
+**Integrantes:**
+
+Oscar Ivan Ulises Gutierrez Palacios.
+Daniel Alonso Gracia Pinto
+
 - **Modalidad:** parejas
 - **Lenguaje:** libre (el código base se presenta en Java)
 - **Prerrequisito:** Laboratorio L1 (SOLID letra por letra)
@@ -401,15 +406,139 @@ Para cada requerimiento:
 ### Registro de cambios
 
 
-| Req. | Archivos a modificar en el código original (estimado)                                                                                  | Archivos existentes modificados (real)                    | Archivos nuevos                                                                        | ¿Se rompió alguna prueba? |
-| ---- | -------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------- | -------------------------------------------------------------------------------------- | ------------------------- |
-| R1   | 1 (`TransaccionService.java`, para agregar un `case "LLAVE"` al `switch` de la comisión)                                               | 0                                                         | 2 (`Llave.java` y `test/LlaveTest.java`)                                               | No                        |
-| R2   | 0 (bastaba con crear `CuentaInfantil.java` heredando de `Cuenta` y sobrescribiendo `retirar()`) aunque con su mala seguridad anterior. | 0                                                         | 2 (`CuentaInfantil.java` y `test/CuentaInfantilTest.java`)                             | No                        |
-| R3   | 1 (`TransaccionService.java`, para crear un `PushGateway` con `new` y agregar la llamada después del SMS)                              | 1 (`Main.java`, para armar el notificador con SMS y push) | 3 (`PushGateway.java`, `NotificadorCompuesto.java` y `test/NotificacionPushTest.java`) | No                        |
-| R4   | 1 (`TransaccionService.java`, para agregar el envío al antifraude después de la auditoría en `transferir()`)                          | 1 (`Main.java`, para armar el registro con auditoría y antifraude) | 3 (`SistemaAntifraude.java`, `RegistroCompuesto.java` y `test/AntifraudeTest.java`) | No                        |
-| R5   | 1 (`TransaccionService.java`, para cambiar el atributo `OracleRepositorio` creado con `new` por uno de PostgreSQL)                     | 1 (`Main.java`, para pasarle `PostgresRepositorio` al servicio en lugar de `OracleRepositorio`) | 2 (`PostgresRepositorio.java` y `test/PostgresRepositorioTest.java`) | No                        |
+| Req. | Archivos a modificar en el código original (estimado)                                                                                  | Archivos existentes modificados (real)                                                          | Archivos nuevos                                                                        | ¿Se rompió alguna prueba? |
+| ---- | -------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------- | ------------------------- |
+| R1   | 1 (`TransaccionService.java`, para agregar un `case "LLAVE"` al `switch` de la comisión)                                               | 0                                                                                               | 2 (`Llave.java` y `test/LlaveTest.java`)                                               | No                        |
+| R2   | 0 (bastaba con crear `CuentaInfantil.java` heredando de `Cuenta` y sobrescribiendo `retirar()`) aunque con su mala seguridad anterior. | 0                                                                                               | 2 (`CuentaInfantil.java` y `test/CuentaInfantilTest.java`)                             | No                        |
+| R3   | 1 (`TransaccionService.java`, para crear un `PushGateway` con `new` y agregar la llamada después del SMS)                              | 1 (`Main.java`, para armar el notificador con SMS y push)                                       | 3 (`PushGateway.java`, `NotificadorCompuesto.java` y `test/NotificacionPushTest.java`) | No                        |
+| R4   | 1 (`TransaccionService.java`, para agregar el envío al antifraude después de la auditoría en `transferir()`)                           | 1 (`Main.java`, para armar el registro con auditoría y antifraude)                              | 3 (`SistemaAntifraude.java`, `RegistroCompuesto.java` y `test/AntifraudeTest.java`)    | No                        |
+| R5   | 1 (`TransaccionService.java`, para cambiar el atributo `OracleRepositorio` creado con `new` por uno de PostgreSQL)                     | 1 (`Main.java`, para pasarle `PostgresRepositorio` al servicio en lugar de `OracleRepositorio`) | 2 (`PostgresRepositorio.java` y `test/PostgresRepositorioTest.java`)                   | No                        |
 
 
 **Para cada requerimiento se creo un archivo test para su criterio de aceptación y algunos extra que consideramos**
 
 **Commits:** uno por requerimiento: `req-1`, `req-2`, `req-3`, `req-4` y `req-5`.
+
+## Bloque 5 — Revisión cruzada
+
+SOLO SE REFERENCIA LO ESCRITO EN EL COMMIT, PARA VER LOS ARCHIVOS IR A LA RAMA DE revision-cruzada.
+
+Grupo a cargo de la revisión:
+
+- Deivid Farid Ardila Herrera
+- Angel David Beltran Garcia
+
+Comprobar si el diseño es fácil de extender para alguien que no lo escribió.
+
+1. Intercambien su repositorio con otra pareja (el docente indica con cuál). No pueden explicarle su código: el código debe explicarse solo.
+2. El docente entregará un requerimiento nuevo. Impleméntenlo sobre el código de la otra pareja.
+3. Llenen la lista de revisión y entréguensela a la otra pareja.
+
+
+
+### Requerimiento 6
+
+Permite a los clientes pagar sus facturas de servicios públicos (agua, luz, gas, internet) desde una cuenta bancaria indicando la referencia de la factura y el valor. Se cobra una comisión de $1.500 por cada pago (un pago de $184.300 descuenta $185.800 de la cuenta origen).Aplican las mismas reglas que en transferencias (monto positivo y dentro del tope diario de $5.000.000). Guarda la transacción en base de datos con la referencia de factura como destino, imprime el comprobante, notifica al cliente (SMS y Push) y pasa por auditoría y antifraude. Un CDT no puede pagar servicios (garantizado en tiempo de compilación por la jerarquía de cuentas).
+
+---
+
+
+
+### Lista de revisión
+
+
+| Criterio                                                                      | Sí    | No  | Observaciones                                                                                                                                                                             |
+| ----------------------------------------------------------------------------- | ----- | --- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Entendimos qué hace cada clase leyendo solo su nombre y sus métodos públicos. | **X** |     | Los nombres son autoexplicativos (`CuentaTransaccional`, `CalculadoraComision`, `NotificadorCompuesto`, etc.).                                                                            |
+| Pudimos reutilizar piezas existentes sin copiar y pegar código.               | **X** |     | Reutilizamos `ValidadorTransaccion`, `CalculadoraComision`, `RepositorioTransacciones`, `ImpresoraComprobante`, `Notificador`, `RegistroCompuesto` y el pipeline de `TransaccionService`. |
+| Implementamos el requerimiento sin modificar la lógica de clases existentes.  | **X** |     | Solo se agregaron extensiones (`ServicioPublico`) y métodos sin alterar la lógica de negocio que ya tenían.                                                                               |
+| No encontramos métodos vacíos ni que lancen "no aplica".                      | **X** |     | El diseño que implementaron eliminó los métodos vacíos o que lanzaban excepciones no esperadas.                                                                                           |
+| No encontramos if/switch por tipo que tuvimos que extender.                   | **X** |     | Ahora está implementado `ServicioPublico implements TipoTransaccion`.                                                                                                                     |
+| Las pruebas existentes siguieron pasando después de nuestro cambio.           | **X** |     | Las 15 pruebas unitarias originales pasaron.                                                                                                                                              |
+| No encontramos abstracciones innecesarias (interfaces que no aportan).        | **X** |     | Cada interfaz cumple un rol claro y permitió reemplazar dependencias reales por dobles de prueba en memoria.                                                                              |
+
+
+**Lo mejor del diseño:**
+
+- La jerarquía de tipos (`CuentaTransaccional` vs `CDT`) que impide retiros o pagos indebidos directamente en tiempo de compilación (**LSP**).
+- La abstracción `TipoTransaccion`, que permite extender nuevas operaciones con reglas propias de comisión sin tocar calculadoras ni validadores (**OCP**).
+- El patrón Composite en `NotificadorCompuesto` y `RegistroCompuesto`, gracias al cual las notificaciones multicanal (SMS + Push) y la seguridad (Auditoría + Antifraude) funcionaron inmediatamente para pagos de servicios sin añadir código extra.
+- La inversión de dependencias (**DIP**), que facilita crear pruebas unitarias rápidas y limpias con dobles de prueba en memoria.
+
+**Lo que nos costó entender o extender:**
+Inicialmente `Comprobante` y `RegistroTransaccion` recibían un objeto `Cuenta` como destino (`Cuenta destino`). En el pago de facturas el destino es una referencia (`String`) y no una cuenta bancaria con saldo. Para evitar crear una cuenta artificial que rompiera LSP e ISP, sobrecargamos ambas interfaces para recibir `String`, manteniendo métodos `default` para preservar total retrocompatibilidad con las transferencias existentes.
+
+**Commit (en el repositorio de la otra pareja, en una rama):** `revision-cruzada`
+
+## Bloque 6 — Cierre
+
+Ver el cambio completo y reflexionar sobre lo aprendido.
+
+### 6.1 Diagramas de clases
+
+Dibujen el diagrama de clases UML del código final y pónganlo al lado del diagrama del bloque 1.
+
+**Antes (código original):**
+
+![Diagrama de clases del código original](media/clases.png)
+
+**Después (código con la revisión cruzada):**
+
+![Diagrama de clases del código final](media/clases_final.png)
+
+### 6.2 Tabla comparativa
+
+
+| Métrica                                                           | Antes                                                                                                | Después                                                            |
+| ----------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------ |
+| Líneas del método `transferir`                                    | 23                                                                                                   | 10                                                                 |
+| Razones distintas por las que `TransaccionService` podría cambiar | 7 (validación, comisión, movimiento del dinero, persistencia, comprobante, notificación y auditoría) | 1 (que cambie el orden o los pasos del flujo de una transferencia) |
+| Clases concretas que `TransaccionService` crea con `new`          | 2 (`OracleRepositorio` y `SmsGateway`)                                                               | 0                                                                  |
+| Métodos vacíos o que lanzan "no aplica"                           | 3 (`TarjetaCredito.depositar()`, `CreditoVivienda.depositar()` y `CreditoVivienda.retirar()`)        | 0                                                                  |
+| ¿Se puede probar `transferir` sin Oracle ni SMS?                  | No                                                                                                   | Sí                                                                 |
+| Número total de archivos                                          | 11 archivos                                                                                          | 42 archivos (34 de código y 8 de pruebas)                          |
+| Archivos existentes modificados en total en el bloque 4           | 2 ( `TransaccionService.java`,`Main.java` )                                                          | 1 ( `Main.java`: en R3, R4 y R5).                                  |
+
+
+
+
+### 6.3 Preguntas de cierre
+
+**(a) El código final tiene muchos más archivos que el original. ¿Es eso un problema? ¿En qué situación sí lo sería?**
+
+En este caso no, pasamos de 11 a 42 archivos, pero cada uno es corto, tiene una sola razón para cambiar y su nombre dice lo que hace, la otra pareja implementó R6 sin pedirnos explicaciones.
+
+Sí sería un problema si los archivos fueran abstracciones especulativas, interfaces con una sola implementación que no se van a reemplazar ni a sustituir en pruebas, o capas que solo pasan la llamada a la siguiente. También lo sería en un programa pequeño o desechable, donde el costo de navegar tantos archivos supera al de cambiar el código, o si el equipo no conoce el patrón y se pierde siguiendo el flujo. 
+
+En nuestro código, el caso más discutible es `Calculadora`/`CalculadoraComision`: solo llama a `tipo.calcularComision(monto)`, y `TipoTransaccion` ya es la abstracción que varía, es candidata a eliminarse.
+
+**(b) ¿En qué requerimiento del bloque 4 se notó más la diferencia entre el código original y el refactorizado? ¿Por qué?**
+
+En R5, la migración a PostgreSQL. En el código original habría que abrir `TransaccionService`, la clase que mueve el dinero, para cambiar el `new OracleRepositorio()` por otro repositorio. Además, el criterio de aceptación ni siquiera se podía cumplir, porque no había forma de probar una transferencia sin escribir en la base de datos de producción.
+
+En el refactorizado bastó con crear `PostgresRepositorio` y cambiar una línea de `Main`. `TransaccionService` y las pruebas usan un repositorio en memoria y no dependen de la base de datos. 
+
+**(c) ¿Hubo algún requerimiento que su diseño no aguantó bien? ¿Qué cambiarían?**
+
+Sí, dos:
+
+- **R4 (antifraude) mostró que el punto de control D,** `TransaccionService` todavía creaba con `new` a `ValidadorTransaccion`, `CalculadoraComision`, `ImpresoraComprobante` y `Auditoria`, así que no había forma de agregar el antifraude junto a la auditoría sin editar el servicio. Lo corregimos en un commit aparte, `control-D-fix`, antes de `req-4`
+- **R6, en la revisión cruzada,** `Comprobante` **y** `RegistroTransaccion` suponían que el destino siempre es una `Cuenta`**.** En un pago de servicios el destino es una referencia de factura, no una cuenta. La otra pareja tuvo que cambiar la firma de las dos interfaces y de sus cuatro implementaciones, y reorganizar `TransaccionService`.
+
+Lo que cambiaríamos es que `Comprobante` y `RegistroTransaccion` reciban solo el dato que usan, igual que ya lo hacía `RepositorioTransacciones`. 
+
+**(d) ¿Qué les dijo la otra pareja en la revisión cruzada? ¿Están de acuerdo?**
+
+La otra pareja (Deivid Farid Ardila Herrera y Angel David Beltran Garcia) dijo "Sí" en los siete puntos de la lista de revisión, lo que les costó fue que `Comprobante` y `RegistroTransaccion` recibían una `Cuenta` como destino.
+
+Estamos de acuerdo con lo positivo y con la dificultad que señalaron, es la limitación que describimos en la respuesta (c). 
+
+**(e) Si tuvieran que convencer a su jefe de invertir dos semanas en refactorizar el backend real del banco, ¿qué argumento usarían, basándose en los datos de hoy?**
+
+Que hoy cada cambio del negocio pasa por la clase que mueve el dinero, y después de refactorizar no. De los cinco requerimientos del bloque 4, en el código original cuatro obligaban a editar `TransaccionService`, que además no se podía probar sin escribir en la base de datos de producción y sin enviarle SMS reales a los clientes. 
+
+Además, ahora hay 15 pruebas unitarias que se ejecutan y verifican comisiones, saldos, persistencia y notificaciones.
+
+También le mostraríamos que otro equipo implementó un requerimiento nuevo sobre nuestro código sin pedirnos explicaciones.
+
+**Commit:** `bloque-6-cierre`
